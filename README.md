@@ -34,7 +34,7 @@ control total del producto.
   lado del servidor.
 - **Costo acotado:** infraestructura ≤ USD 50/mes hasta 500 alumnos activos.
 
-## Stack previsto
+## Stack
 
 Next.js (App Router) + TypeScript · Supabase (Postgres, Auth, RLS) · Mercado Pago · Bunny Stream ·
 Resend · Vitest y Playwright. Detalle y alternativas en
@@ -62,6 +62,17 @@ npm run dev                       # http://localhost:3000
 
 El webhook de Mercado Pago apunta a `/api/webhooks/mercadopago` y la conciliación corre cada 5
 minutos en `/api/cron/reconcile` (ver `vercel.json`, requiere `CRON_SECRET`).
+
+## Estado de validación
+
+- **Verificado:** chequeo de tipos, lint, build y 58 tests unitarios e integración (la lógica de
+  pagos se prueba con un almacenamiento en memoria).
+- **Sin ejecutar contra servicios reales:** migraciones y políticas RLS de Supabase, sandbox de
+  Mercado Pago y la librería de Bunny Stream. Los tests E2E (compra, marca de agua, recuperación de
+  contraseña), de RLS y de carga están escritos pero se omiten sin credenciales.
+- **Tareas pendientes** (requieren servicios configurados): T079 medir primer frame y carga de 50
+  sesiones, T080 documentar el costo real, T081 ejecutar los escenarios del quickstart. Ver
+  [tasks.md](specs/001-lms-cursos-ia/tasks.md).
 
 ## Documentación
 
