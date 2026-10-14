@@ -179,6 +179,8 @@ reversión; verificar el acceso resultante.
 - Reversión de un pago de un curso ya completado: el certificado emitido se conserva.
 - Enlace de restablecimiento de contraseña vencido o ya utilizado.
 - Admin elimina un curso con compras vigentes: deja de venderse, pero los alumnos conservan el acceso.
+- Admin elimina una clase con progreso: se archiva, no cuenta para el avance y el progreso se conserva.
+- Reversión que llega antes que la aprobación: no habilita el curso.
 - Admin reordena o elimina clases en un curso donde alumnos ya tienen progreso o certificado.
 - Alumno marca todas las clases como vistas sin reproducirlas (aceptado en v1, ver Assumptions).
 - Cambio de email del alumno y su efecto en la marca de agua y en las notificaciones.
@@ -231,15 +233,19 @@ reversión; verificar el acceso resultante.
   la compra y permitirle continuar; un pago aprobado adicional MUST registrarse en el historial sin
   duplicar la habilitación; ese pago adicional MUST figurar como "pago duplicado" en el historial y
   su reembolso lo gestiona soporte manualmente.
+- **FR-025**: Al eliminar una clase con progreso registrado, el sistema MUST archivarla en lugar de
+  borrarla: deja de mostrarse y de contar para el porcentaje de avance y la elegibilidad del
+  certificado, y conserva el progreso y los certificados ya emitidos.
 
 ### Key Entities *(include if feature involves data)*
 
 - **Usuario**: persona registrada; atributos: nombre, email, contraseña, rol (alumno o Admin).
-- **Curso**: producto vendible; título, descripción, precio, estado de publicación; contiene clases
-  ordenadas.
+- **Curso**: producto vendible; título, descripción, precio (en pesos argentinos, ARS), estado de
+  publicación; contiene clases ordenadas.
 - **Clase**: unidad de un curso; título, video, descripción, palabras clave, posición.
 - **Compra**: relación entre usuario, curso y pago; fecha y estado (aprobada, pendiente, revertida).
-- **Acceso/Habilitación**: derecho vigente de un usuario a un curso; derivado del estado de la compra.
+- **Habilitación** (en el diseño, `enrollment`): derecho vigente de un usuario a un curso; derivado del
+  estado de la compra.
 - **Progreso**: marca de clase vista/no vista por usuario y clase; permite el porcentaje de avance.
 - **Certificado**: constancia PDF de completitud con nombre, curso y fecha.
 - **Pago/Notificación de pago**: evento externo del medio de pago asociado a una compra.
@@ -278,3 +284,6 @@ reversión; verificar el acceso resultante.
 - Las rutas indicadas (`docs/PRD2.md`) no existen; se usó `PRDv2.md` de la raíz del repositorio como
   fuente.
 - Los usuarios cuentan con conexión de banda ancha estándar (≥10 Mbps) para la reproducción.
+- Los precios se expresan y cobran en pesos argentinos (ARS).
+- Un enlace de video ya emitido sigue siendo válido hasta su vencimiento (≤10 min) aunque el acceso
+  se revoque durante la reproducción; no se emiten enlaces nuevos.

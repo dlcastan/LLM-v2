@@ -3,7 +3,7 @@
 Todas las tablas con RLS activa; escritura sensible solo vía servidor con rol de servicio.
 
 ## profiles
-- `id` (uuid, PK, = auth.users.id), `full_name` (text, requerido), `email` (text, requerido, único),
+- `id` (uuid, PK, = auth.users.id), `full_name` (text, requerido), `email` (text, requerido, único; espejo de `auth.users.email`, sincronizado por trigger),
   `role` (`student` | `admin`, default `student`), `created_at`.
 
 ## courses
@@ -13,7 +13,11 @@ Todas las tablas con RLS activa; escritura sensible solo vía servidor con rol d
 
 ## lessons
 - `id` (uuid, PK), `course_id` (FK courses), `title` (requerido), `description` (text),
-  `keywords` (text[]), `bunny_video_id` (text, requerido), `position` (int ≥ 1, único por curso).
+  `keywords` (text[]), `bunny_video_id` (text, requerido), `position` (int ≥ 1, único por curso con
+  restricción DEFERRABLE INITIALLY DEFERRED para permitir reordenar en una transacción),
+  `archived_at` (timestamp, nulo).
+- Eliminar una clase con progreso la archiva (`archived_at`); no cuenta para el porcentaje ni para el
+  certificado, y conserva el progreso (FR-025).
 
 ## purchases
 - `id` (uuid, PK), `user_id` (FK), `course_id` (FK), `mp_preference_id`, `mp_payment_id` (único si no

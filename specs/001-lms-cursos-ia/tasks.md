@@ -42,7 +42,7 @@ siguen el orden del spec, no el orden de ejecución; ver "Dependencies & Executi
 
 **⚠️ CRITICAL**: ninguna historia puede empezar hasta terminar esta fase
 
-- [ ] T008 Crear migración `supabase/migrations/0001_core_schema.sql` con `profiles` (`role` en `student` | `admin`, default `student`; `email` requerido y único; `full_name` requerido), `courses` (`title` requerido, `price_ars` numeric ≥ 0, `status` en `draft` | `published` | `archived`) y `lessons` (`bunny_video_id` requerido, `position` int ≥ 1, único por curso, `keywords` text[])
+- [ ] T008 Crear migración `supabase/migrations/0001_core_schema.sql` con `profiles` (`role` en `student` | `admin`, default `student`; `email` requerido y único, espejo de `auth.users.email` mantenido por un trigger de sincronización; `full_name` requerido), `courses` (`title` requerido, `price_ars` numeric ≥ 0, `status` en `draft` | `published` | `archived`) y `lessons` (`bunny_video_id` requerido, `position` int ≥ 1, único por curso con restricción DEFERRABLE INITIALLY DEFERRED, `archived_at` timestamp nulo, `keywords` text[])
 - [ ] T009 Crear migración `supabase/migrations/0002_commerce_schema.sql` con `purchases` (`status` en `pending` | `approved` | `reverted` | `duplicate` | `rejected`; `mp_payment_id` único si no nulo), `enrollments` (único `(user_id, course_id)`; `active` bool), `payment_events` (único `(mp_payment_id, mp_status, date_last_updated)`), `lesson_progress` (PK `(user_id, lesson_id)`) y `certificates` (único `(user_id, course_id)`)
 - [ ] T010 Crear migración `supabase/migrations/0003_rls_policies.sql` activando RLS en todas las tablas: el alumno solo lee sus filas; catálogo `published` legible; escrituras sensibles solo con rol de servicio; Admin por `profiles.role`
 - [ ] T011 [P] Implementar clientes de Supabase (servidor con service role, servidor con sesión, navegador) en `src/lib/db/clients.ts`
@@ -69,19 +69,22 @@ siguen el orden del spec, no el orden de ejecución; ver "Dependencies & Executi
 - [ ] T019 [P] [US1] Test de integración de `POST /api/checkout` (crea compra `pending` y devuelve `checkoutUrl`) en `tests/integration/checkout.test.ts`
 - [ ] T020 [P] [US1] Test de integración del webhook con pago `approved` → compra `approved` y enrollment activo (AC-07) en `tests/integration/webhook-approve.test.ts`
 - [ ] T021 [P] [US1] Test de firma inválida del webhook → `401` sin efectos en `tests/integration/webhook-signature.test.ts`
-- [ ] T022 [P] [US1] Test E2E del flujo visitante → registro → compra sandbox en `tests/e2e/purchase.spec.ts`
+- [ ] T022 [P] [US1] Test E2E del flujo visitante → registro → compra sandbox, verificando que la compra se alcanza en ≤2 clics desde la home (SC-001) en `tests/e2e/purchase.spec.ts`
+- [ ] T023 [P] [US1] Test de idempotencia: la misma notificación 3 veces → una habilitación, un registro de compra y un email (AC-08) en `tests/integration/idempotency.test.ts`
 
 ### Implementation for User Story 1
 
-- [ ] T023 [P] [US1] Crear la home con propuesta de valor y CTA a registro/compra en `src/app/(public)/page.tsx` (FR-001, FR-002; compra alcanzable en ≤2 clics)
-- [ ] T024 [P] [US1] Crear páginas de registro e inicio de sesión con email y contraseña en `src/app/(public)/registro/page.tsx` y `src/app/(public)/login/page.tsx` (FR-003)
-- [ ] T025 [P] [US1] Implementar cliente de Mercado Pago (preferencias y consulta de pago) en `src/lib/payments/mercadopago.ts`
-- [ ] T026 [US1] Implementar verificación de `x-signature` del webhook en `src/lib/payments/verify-signature.ts`
-- [ ] T027 [US1] Implementar `POST /api/checkout` (requiere sesión, crea compra `pending`, devuelve `{checkoutUrl, alreadyOwned}`) en `src/app/api/checkout/route.ts` (depende de T025)
-- [ ] T028 [US1] Implementar el procesamiento de un pago aprobado (consulta a la API, nunca confía en el payload; compra `approved` + enrollment activo) en `src/lib/payments/process-payment.ts` (depende de T025, T026)
-- [ ] T029 [US1] Implementar `POST /api/webhooks/mercadopago` en `src/app/api/webhooks/mercadopago/route.ts` (responde `200` en <2 s; errores transitorios → `500`) (depende de T028)
-- [ ] T030 [US1] Crear página de catálogo y detalle del curso con botón de compra en `src/app/(public)/cursos/[id]/page.tsx`
-- [ ] T031 [US1] Crear el panel "Mis cursos" con acceso directo a cada curso en `src/app/(student)/mi-cuenta/page.tsx` (FR-006, AC-04)
+- [ ] T024 [P] [US1] Crear la home con propuesta de valor y CTA a registro/compra en `src/app/(public)/page.tsx` (FR-001, FR-002; compra alcanzable en ≤2 clics)
+- [ ] T025 [P] [US1] Crear páginas de registro e inicio de sesión con email y contraseña en `src/app/(public)/registro/page.tsx` y `src/app/(public)/login/page.tsx` (FR-003)
+- [ ] T026 [P] [US1] Implementar cliente de Mercado Pago (preferencias y consulta de pago) en `src/lib/payments/mercadopago.ts`
+- [ ] T027 [US1] Implementar verificación de `x-signature` del webhook en `src/lib/payments/verify-signature.ts`
+- [ ] T028 [US1] Implementar la inserción idempotente en `payment_events` (clave única `(mp_payment_id, mp_status, date_last_updated)`; si ya existe, no hay efectos) con los efectos en una sola transacción en `src/lib/payments/idempotency.ts` (FR-015, Principio I)
+- [ ] T029 [US1] Implementar el envío de email de confirmación una sola vez por pago con Resend en `src/lib/payments/notify.ts`
+- [ ] T030 [US1] Implementar `POST /api/checkout` (requiere sesión, crea compra `pending`, devuelve `{checkoutUrl, alreadyOwned}`) en `src/app/api/checkout/route.ts` (depende de T026)
+- [ ] T031 [US1] Implementar el procesamiento de un pago aprobado (consulta a la API, nunca confía en el payload; compra `approved` + enrollment activo) en `src/lib/payments/process-payment.ts` usando la inserción idempotente de T028 y el email de T029 (depende de T026, T027, T028, T029; NO implementar antes de que T023 exista y falle)
+- [ ] T032 [US1] Implementar `POST /api/webhooks/mercadopago` en `src/app/api/webhooks/mercadopago/route.ts` (responde `200` en <2 s; errores transitorios → `500`) (depende de T031)
+- [ ] T033 [US1] Crear página de catálogo y detalle del curso con botón de compra en `src/app/(public)/cursos/[id]/page.tsx`
+- [ ] T034 [US1] Crear el panel "Mis cursos" con acceso directo a cada curso en `src/app/(student)/mi-cuenta/page.tsx` (FR-006, AC-04)
 
 **Checkpoint**: la compra funciona de punta a punta y el curso aparece habilitado
 
@@ -95,15 +98,15 @@ siguen el orden del spec, no el orden de ejecución; ver "Dependencies & Executi
 
 ### Tests for User Story 2 ⚠️
 
-- [ ] T032 [P] [US2] Test unitario del cálculo de porcentaje de avance en `tests/unit/progress.test.ts`
-- [ ] T033 [P] [US2] Test de integración de `POST /api/lessons/{id}/progress` (guarda estado, devuelve porcentaje, `403` sin enrollment activo) en `tests/integration/progress.test.ts`
+- [ ] T035 [P] [US2] Test unitario del cálculo de porcentaje de avance en `tests/unit/progress.test.ts`
+- [ ] T036 [P] [US2] Test de integración de `POST /api/lessons/{id}/progress` (guarda estado, devuelve porcentaje, `403` sin enrollment activo) en `tests/integration/progress.test.ts`
 
 ### Implementation for User Story 2
 
-- [ ] T034 [P] [US2] Implementar cálculo del porcentaje de avance en `src/lib/progress.ts`
-- [ ] T035 [US2] Implementar `POST /api/lessons/[id]/progress` en `src/app/api/lessons/[id]/progress/route.ts` (depende de T034)
-- [ ] T036 [US2] Crear la vista del curso con listado de clases ordenadas y estado visto/no visto en `src/app/(student)/cursos/[id]/page.tsx` (FR-008)
-- [ ] T037 [US2] Crear la vista de clase (descripción, palabras clave, marcar como vista) en `src/app/(student)/cursos/[id]/clases/[lessonId]/page.tsx` (FR-009, FR-010)
+- [ ] T037 [P] [US2] Implementar cálculo del porcentaje de avance (excluye clases archivadas, FR-025) en `src/lib/progress.ts`
+- [ ] T038 [US2] Implementar `POST /api/lessons/[id]/progress` en `src/app/api/lessons/[id]/progress/route.ts` (depende de T037)
+- [ ] T039 [US2] Crear la vista del curso con listado de clases ordenadas y estado visto/no visto en `src/app/(student)/mi-cuenta/cursos/[id]/page.tsx` (FR-008)
+- [ ] T040 [US2] Crear la vista de clase (descripción, palabras clave, marcar como vista) en `src/app/(student)/mi-cuenta/cursos/[id]/clases/[lessonId]/page.tsx` (FR-009, FR-010)
 
 **Checkpoint**: US1 y US2 funcionan de forma independiente
 
@@ -117,15 +120,18 @@ siguen el orden del spec, no el orden de ejecución; ver "Dependencies & Executi
 
 ### Tests for User Story 3 ⚠️
 
-- [ ] T038 [P] [US3] Test unitario de la firma de URLs (expiración ≤ 15 min, hash SHA-256 de clave + ruta + expiración) en `tests/unit/bunny-signing.test.ts`
-- [ ] T039 [P] [US3] Test de integración de `GET /api/lessons/{id}/playback` (`403` sin enrollment activo, `401` sin sesión, sin enlace de descarga del fuente) en `tests/integration/playback.test.ts`
+- [ ] T041 [P] [US3] Test unitario de la firma de URLs (expiración ≤ 15 min, hash SHA-256 de clave + ruta + expiración) en `tests/unit/bunny-signing.test.ts`
+- [ ] T042 [P] [US3] Test de integración de `GET /api/lessons/{id}/playback` (`403` sin enrollment activo, `401` sin sesión, sin enlace de descarga del fuente) en `tests/integration/playback.test.ts`
+- [ ] T043 [P] [US3] Test E2E de que la marca de agua con el email del alumno está visible durante toda la reproducción (AC-14) en `tests/e2e/watermark.spec.ts`
 
 ### Implementation for User Story 3
 
-- [ ] T040 [P] [US3] Implementar firma de URLs de Bunny Stream con expiración de 10 minutos en `src/lib/video/bunny.ts` (FR-020, FR-022)
-- [ ] T041 [US3] Implementar `GET /api/lessons/[id]/playback` (verifica enrollment activo en el servidor; devuelve `{url, expiresAt, watermark}`) en `src/app/api/lessons/[id]/playback/route.ts` (depende de T040)
-- [ ] T042 [US3] Implementar el reproductor con capa de marca de agua (email del alumno, posición variable cada pocos segundos, visible durante toda la reproducción) en `src/components/player/VideoPlayer.tsx` (FR-021)
-- [ ] T043 [US3] Integrar el reproductor en la vista de clase en `src/app/(student)/cursos/[id]/clases/[lessonId]/page.tsx` (depende de T037, T042)
+- [ ] T044 [P] [US3] Implementar firma de URLs de Bunny Stream con expiración de 10 minutos en `src/lib/video/bunny.ts` (FR-020, FR-022)
+- [ ] T045 [US3] Documentar y aplicar la configuración de la librería de Bunny Stream: Token Authentication activado, descarga del MP4 y conservación del archivo original deshabilitadas, referer restringido al dominio del LMS, en `specs/001-lms-cursos-ia/bunny-setup.md` (FR-020, Principio II)
+- [ ] T046 [US3] Crear `scripts/verify-bunny-config.ts` que consulta la API de Bunny y falla si Token Authentication está desactivado, el MP4 fallback está habilitado o no hay referer permitido, y agregarlo al script `verify:bunny` de `package.json`
+- [ ] T047 [US3] Implementar `GET /api/lessons/[id]/playback` (verifica enrollment activo en el servidor; devuelve `{url, expiresAt, watermark}`) en `src/app/api/lessons/[id]/playback/route.ts` (depende de T044 y de que T046 pase)
+- [ ] T048 [US3] Implementar el reproductor con capa de marca de agua (email del alumno, posición variable cada pocos segundos, visible durante toda la reproducción) en `src/components/player/VideoPlayer.tsx` (FR-021)
+- [ ] T049 [US3] Integrar el reproductor en la vista de clase en `src/app/(student)/mi-cuenta/cursos/[id]/clases/[lessonId]/page.tsx` (depende de T040, T048)
 
 **Checkpoint**: contenido protegido y verificado
 
@@ -139,23 +145,20 @@ siguen el orden del spec, no el orden de ejecución; ver "Dependencies & Executi
 
 ### Tests for User Story 7 ⚠️
 
-- [ ] T044 [P] [US7] Test de idempotencia: la misma notificación 3 veces → una habilitación, un registro de compra y un email (AC-08) en `tests/integration/idempotency.test.ts`
-- [ ] T045 [P] [US7] Test de conciliación: pago aprobado sin webhook queda habilitado en ≤15 min (AC-09) en `tests/integration/reconcile.test.ts`
-- [ ] T046 [P] [US7] Test de reversión: `refunded`/`charged_back`/`cancelled` revoca acceso y conserva certificado (AC-10) en `tests/integration/reversal.test.ts`
-- [ ] T047 [P] [US7] Test de verificación manual por Admin y `403` para no Admin (AC-11) en `tests/integration/admin-verify.test.ts`
-- [ ] T048 [P] [US7] Test de compra duplicada: advertencia, segundo pago `duplicate` sin duplicar la habilitación (FR-023) en `tests/integration/duplicate-payment.test.ts`
+- [ ] T050 [P] [US7] Test de conciliación: pago aprobado sin webhook queda habilitado en ≤15 min (AC-09) en `tests/integration/reconcile.test.ts`
+- [ ] T051 [P] [US7] Test de reversión: `refunded`/`charged_back`/`cancelled` revoca acceso y conserva certificado (AC-10), incluida una reversión que llega antes que la aprobación (no debe habilitar el curso) en `tests/integration/reversal.test.ts`
+- [ ] T052 [P] [US7] Test de verificación manual por Admin y `403` para no Admin (AC-11) en `tests/integration/admin-verify.test.ts`
+- [ ] T053 [P] [US7] Test de compra duplicada: advertencia, segundo pago `duplicate` sin duplicar la habilitación (FR-023) en `tests/integration/duplicate-payment.test.ts`
 
 ### Implementation for User Story 7
 
-- [ ] T049 [US7] Agregar inserción idempotente en `payment_events` (clave única `(mp_payment_id, mp_status, date_last_updated)`) y efectos en la misma transacción en `src/lib/payments/process-payment.ts`
-- [ ] T050 [US7] Implementar el envío de emails de confirmación una sola vez por pago con Resend en `src/lib/payments/notify.ts`
-- [ ] T051 [US7] Implementar manejo de reversiones (compra `reverted`, enrollment `active=false`, certificado conservado) en `src/lib/payments/handle-reversal.ts`
-- [ ] T052 [US7] Implementar manejo de pago duplicado (compra `duplicate`, sin segundo enrollment) en `src/lib/payments/handle-duplicate.ts`
-- [ ] T053 [US7] Implementar la conciliación de pagos pendientes contra la API en `src/lib/payments/reconcile.ts`
-- [ ] T054 [US7] Implementar `GET /api/cron/reconcile` protegido por `CRON_SECRET` en `src/app/api/cron/reconcile/route.ts` y programar cada 5 minutos en `vercel.json` (depende de T053)
-- [ ] T055 [US7] Implementar `POST /api/admin/payments/[id]/verify` (requiere rol Admin) en `src/app/api/admin/payments/[id]/verify/route.ts`
-- [ ] T056 [US7] Mostrar la advertencia de "ya tenés este curso" en el flujo de compra en `src/app/(public)/cursos/[id]/page.tsx` y `src/app/api/checkout/route.ts` (FR-023)
-- [ ] T057 [US7] Crear vista Admin de pagos con verificación manual en `src/app/admin/pagos/page.tsx`
+- [ ] T054 [US7] Implementar manejo de reversiones (compra `reverted`, enrollment `active=false`, certificado conservado; una reversión recibida antes de la aprobación deja la compra `reverted` y la aprobación posterior NO habilita; un enlace de video ya emitido sigue vigente hasta su vencimiento de ≤10 min) en `src/lib/payments/handle-reversal.ts`
+- [ ] T055 [US7] Implementar manejo de pago duplicado (compra `duplicate`, sin segundo enrollment) en `src/lib/payments/handle-duplicate.ts`
+- [ ] T056 [US7] Implementar la conciliación de pagos pendientes contra la API en `src/lib/payments/reconcile.ts`
+- [ ] T057 [US7] Implementar `GET /api/cron/reconcile` protegido por `CRON_SECRET` en `src/app/api/cron/reconcile/route.ts` y programar cada 5 minutos en `vercel.json` (depende de T056)
+- [ ] T058 [US7] Implementar `POST /api/admin/payments/[id]/verify` (requiere rol Admin) en `src/app/api/admin/payments/[id]/verify/route.ts`
+- [ ] T059 [US7] Mostrar la advertencia de "ya tenés este curso" en el flujo de compra en `src/app/(public)/cursos/[id]/page.tsx` y `src/app/api/checkout/route.ts` (FR-023)
+- [ ] T060 [US7] Crear vista Admin de pagos con verificación manual en `src/app/admin/pagos/page.tsx`
 
 **Checkpoint**: pagos coherentes ante duplicados, pérdidas y reversiones
 
@@ -169,15 +172,15 @@ siguen el orden del spec, no el orden de ejecución; ver "Dependencies & Executi
 
 ### Tests for User Story 4 ⚠️
 
-- [ ] T058 [P] [US4] Test de autorización del panel (`403` para alumno, `401` sin sesión) en `tests/integration/admin-authz.test.ts`
-- [ ] T059 [P] [US4] Test de eliminación de curso con compras vigentes: se archiva y los alumnos conservan el acceso (FR-024) en `tests/integration/course-archive.test.ts`
+- [ ] T061 [P] [US4] Test de autorización del panel (`403` para alumno, `401` sin sesión) en `tests/integration/admin-authz.test.ts`
+- [ ] T062 [P] [US4] Test de eliminación: un curso con compras vigentes se archiva y los alumnos conservan el acceso (FR-024); una clase con progreso se archiva, conserva el progreso y no cuenta para el porcentaje (FR-025) en `tests/integration/course-archive.test.ts`
 
 ### Implementation for User Story 4
 
-- [ ] T060 [P] [US4] Implementar `CRUD /api/admin/courses` en `src/app/api/admin/courses/route.ts` y `src/app/api/admin/courses/[id]/route.ts` (eliminar con compras vigentes → `archived`)
-- [ ] T061 [P] [US4] Implementar `CRUD /api/admin/lessons` con reordenamiento (`position` ≥ 1 único por curso) en `src/app/api/admin/lessons/route.ts`
-- [ ] T062 [US4] Crear UI de gestión de cursos en `src/app/admin/cursos/page.tsx` (depende de T060)
-- [ ] T063 [US4] Crear UI de gestión de clases (título, descripción, video de Bunny, palabras clave, orden) en `src/app/admin/cursos/[id]/clases/page.tsx` (depende de T061)
+- [ ] T063 [P] [US4] Implementar `CRUD /api/admin/courses` en `src/app/api/admin/courses/route.ts` y `src/app/api/admin/courses/[id]/route.ts` (eliminar con compras vigentes → `archived`)
+- [ ] T064 [P] [US4] Implementar `CRUD /api/admin/lessons` con reordenamiento en una sola transacción (`position` ≥ 1, único por curso, restricción DEFERRABLE INITIALLY DEFERRED) y eliminación lógica de clases con progreso mediante `archived_at` (FR-025) en `src/app/api/admin/lessons/route.ts`
+- [ ] T065 [US4] Crear UI de gestión de cursos en `src/app/admin/cursos/page.tsx` (depende de T063)
+- [ ] T066 [US4] Crear UI de gestión de clases (título, descripción, video de Bunny, palabras clave, orden) en `src/app/admin/cursos/[id]/clases/page.tsx` (depende de T064)
 
 **Checkpoint**: catálogo administrable
 
@@ -191,14 +194,14 @@ siguen el orden del spec, no el orden de ejecución; ver "Dependencies & Executi
 
 ### Tests for User Story 5 ⚠️
 
-- [ ] T064 [P] [US5] Test E2E de recuperación de contraseña con enlace vencido y válido (AC-02) en `tests/e2e/password-reset.spec.ts`
-- [ ] T065 [P] [US5] Test de integración de edición de datos personales y del historial de compras (AC-03) en `tests/integration/account.test.ts`
+- [ ] T067 [P] [US5] Test E2E de recuperación de contraseña con enlace vencido y válido (AC-02) en `tests/e2e/password-reset.spec.ts`
+- [ ] T068 [P] [US5] Test de integración de edición de datos personales (incluye que `profiles.email` se sincroniza con el email de autenticación) y del historial de compras (AC-03) en `tests/integration/account.test.ts`
 
 ### Implementation for User Story 5
 
-- [ ] T066 [P] [US5] Crear flujo "olvidé mi contraseña" y restablecimiento con enlace con vencimiento en `src/app/(public)/recuperar/page.tsx` y `src/app/(public)/restablecer/page.tsx` (FR-004)
-- [ ] T067 [P] [US5] Crear edición de nombre, email y contraseña en `src/app/(student)/mi-cuenta/perfil/page.tsx` (FR-005)
-- [ ] T068 [P] [US5] Crear historial de compras (curso, fecha, estado, incluye "pago duplicado") en `src/app/(student)/mi-cuenta/compras/page.tsx` (FR-007)
+- [ ] T069 [P] [US5] Crear flujo "olvidé mi contraseña" y restablecimiento con enlace con vencimiento en `src/app/(public)/recuperar/page.tsx` y `src/app/(public)/restablecer/page.tsx` (FR-004)
+- [ ] T070 [P] [US5] Crear edición de nombre, email (se cambia en autenticación y `profiles.email` se sincroniza) y contraseña en `src/app/(student)/mi-cuenta/perfil/page.tsx` (FR-005)
+- [ ] T071 [P] [US5] Crear historial de compras (curso, fecha, estado, incluye "pago duplicado") en `src/app/(student)/mi-cuenta/compras/page.tsx` (FR-007)
 
 **Checkpoint**: autogestión de cuenta completa
 
@@ -212,13 +215,13 @@ siguen el orden del spec, no el orden de ejecución; ver "Dependencies & Executi
 
 ### Tests for User Story 6 ⚠️
 
-- [ ] T069 [P] [US6] Test de elegibilidad (100% vistas, certificado conservado ante reversión) en `tests/integration/certificate.test.ts`
+- [ ] T072 [P] [US6] Test de elegibilidad (100% vistas, certificado conservado ante reversión) en `tests/integration/certificate.test.ts`
 
 ### Implementation for User Story 6
 
-- [ ] T070 [P] [US6] Implementar la generación del PDF (nombre, curso, fecha) con `pdf-lib` en `src/lib/certificates/generate.ts`
-- [ ] T071 [US6] Implementar `GET /api/certificates/[courseId]` (registra la emisión en `certificates`) en `src/app/api/certificates/[courseId]/route.ts` (depende de T070)
-- [ ] T072 [US6] Agregar el botón de descarga del certificado en `src/app/(student)/cursos/[id]/page.tsx`
+- [ ] T073 [P] [US6] Implementar la generación del PDF (nombre, curso, fecha) con `pdf-lib` en `src/lib/certificates/generate.ts`
+- [ ] T074 [US6] Implementar `GET /api/certificates/[courseId]` (registra la emisión en `certificates`) en `src/app/api/certificates/[courseId]/route.ts` (depende de T073)
+- [ ] T075 [US6] Agregar el botón de descarga del certificado en `src/app/(student)/mi-cuenta/cursos/[id]/page.tsx`
 
 **Checkpoint**: todas las historias funcionan de forma independiente
 
@@ -228,12 +231,13 @@ siguen el orden del spec, no el orden de ejecución; ver "Dependencies & Executi
 
 **Purpose**: mejoras transversales
 
-- [ ] T073 [P] Auditar que ningún secreto llegue al bundle del cliente ni al control de versiones (revisar `src/` y `.env.example`)
-- [ ] T074 [P] Revisar políticas RLS contra los escenarios de acceso cruzado entre alumnos en `tests/integration/rls.test.ts`
-- [ ] T075 [P] Medir el primer frame de video (≤3 s a ≥10 Mbps) y 50 reproducciones simultáneas (RNF-03/04) y registrar en `specs/001-lms-cursos-ia/research.md`
-- [ ] T076 Documentar el costo mensual real de infraestructura contra el tope de USD 50 (RNF-02) en `specs/001-lms-cursos-ia/research.md`
-- [ ] T077 Ejecutar todos los escenarios de `specs/001-lms-cursos-ia/quickstart.md`
-- [ ] T078 [P] Actualizar `README.md` con instrucciones de instalación y ejecución
+- [ ] T076 [P] Auditar que ningún secreto llegue al bundle del cliente ni al control de versiones (revisar `src/` y `.env.example`)
+- [ ] T077 [P] Revisar políticas RLS contra los escenarios de acceso cruzado entre alumnos en `tests/integration/rls.test.ts`
+- [ ] T078 [P] Crear prueba de carga de reproducción (50 sesiones simultáneas, primer frame ≤3 s) en `tests/load/playback-load.test.ts` (SC-005, SC-006)
+- [ ] T079 Ejecutar T078 y medir el primer frame de video (≤3 s a ≥10 Mbps) y 50 reproducciones simultáneas (RNF-03/04) y registrar en `specs/001-lms-cursos-ia/research.md`
+- [ ] T080 Documentar el costo mensual real de infraestructura contra el tope de USD 50 (RNF-02) en `specs/001-lms-cursos-ia/research.md`
+- [ ] T081 Ejecutar todos los escenarios de `specs/001-lms-cursos-ia/quickstart.md`
+- [ ] T082 [P] Actualizar `README.md` con instrucciones de instalación y ejecución
 
 ---
 
@@ -250,8 +254,8 @@ siguen el orden del spec, no el orden de ejecución; ver "Dependencies & Executi
 
 - **US1 (P1)**: tras Foundational; sin dependencias de otras historias
 - **US2 (P1)**: tras Foundational; necesita un enrollment (usa el seed T017 o el flujo de US1)
-- **US3 (P1)**: tras Foundational; la vista de clase integra el reproductor tras T037 (US2)
-- **US7 (P1)**: extiende `process-payment.ts` de US1 (T028); US1 y US7 deben salir juntos
+- **US3 (P1)**: tras Foundational; la vista de clase integra el reproductor tras T040 (US2)
+- **US7 (P1)**: la idempotencia y el email ya viven en US1; US7 agrega conciliación, reversiones, duplicados y verificación Admin. US1 no debe publicarse sin su test de idempotencia (Principio I y IV); US1 y US7 deben salir juntos
 - **US4 (P2)**: tras Foundational; independiente
 - **US5 (P2)**: tras Foundational; el historial muestra estados de US7
 - **US6 (P3)**: depende del progreso de US2

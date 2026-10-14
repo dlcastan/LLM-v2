@@ -17,5 +17,6 @@
 8. **Admin** (AC-12): crear curso y clases; alumno sin rol recibe 403.
 
 ## Comandos
+- `npm run verify:bunny` (falla si la librería de Bunny no tiene Token Authentication).
 - `npm run test` (unidad e integración), `npm run test:e2e` (Playwright).
 Resultado esperado: todos los escenarios en verde.

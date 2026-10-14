@@ -40,6 +40,11 @@
   directo deshabilitados en la librería; restricción de referer al dominio.
 - **Alternatives**: URLs públicas (incumple RNF-01).
 
+### 7b. Configuración de la librería
+- **Decision**: Token Authentication activado, MP4 fallback y conservación del original
+  deshabilitados, referer restringido al dominio; verificado por `scripts/verify-bunny-config.ts`.
+- **Rationale**: sin esta configuración el archivo fuente podría quedar accesible (Principio II).
+
 ### 8. Marca de agua
 - **Decision**: capa HTML sobre el reproductor con el email del alumno, con posición variable cada
   pocos segundos y no removible por CSS del usuario en la UI estándar.
