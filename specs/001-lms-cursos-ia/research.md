@@ -72,3 +72,7 @@
 ## Pendientes
 - Facturación fiscal: depende del contador; no bloquea el plan.
 - Versión exacta de Next.js: confirmar al instalar y leer la documentación incluida.
+
+## Decisión: proxy en lugar de middleware (T014)
+
+Next.js 16.4 renombró `middleware` a `proxy` (`src/proxy.ts`, función `proxy`). Se usa `proxy.ts`.

@@ -4,7 +4,8 @@ Plataforma propia B2C para **vender y dictar cursos sobre inteligencia artificia
 productos digitales**. Reemplaza a plataformas como Hotmart o Teachable para reducir costos y tener
 control total del producto.
 
-> Estado: fase de especificación y diseño. Todavía no hay código de aplicación.
+> Estado: implementación completa del código de las historias US1–US7; pendiente de configurar
+> los servicios externos (Supabase, Mercado Pago sandbox, Bunny Stream) y validar el quickstart.
 
 ## Qué hace
 
@@ -39,6 +40,29 @@ Next.js (App Router) + TypeScript · Supabase (Postgres, Auth, RLS) · Mercado P
 Resend · Vitest y Playwright. Detalle y alternativas en
 [research.md](specs/001-lms-cursos-ia/research.md).
 
+## Instalación y ejecución
+
+Requisitos: Node.js 22 o superior, un proyecto Supabase, una cuenta de Mercado Pago (sandbox) y una
+librería de Bunny Stream.
+
+```bash
+npm install
+cp .env.example .env.local        # completar las variables (ver .env.example)
+# aplicar las migraciones de supabase/migrations/ en orden y, opcionalmente, supabase/seed.sql
+npm run dev                       # http://localhost:3000
+```
+
+| Comando | Qué hace |
+|---------|----------|
+| `npm run test` | tests unitarios e integración (los que requieren servicios se omiten sin credenciales) |
+| `npm run test:e2e` | tests E2E de Playwright |
+| `npm run typecheck` | chequeo de tipos |
+| `npm run lint` | ESLint |
+| `npm run verify:bunny` | verifica la configuración de seguridad de la librería de Bunny |
+
+El webhook de Mercado Pago apunta a `/api/webhooks/mercadopago` y la conciliación corre cada 5
+minutos en `/api/cron/reconcile` (ver `vercel.json`, requiere `CRON_SECRET`).
+
 ## Documentación
 
 | Documento | Contenido |
@@ -61,4 +85,5 @@ recordatorios por email y métricas de venta en el panel Admin.
 El proyecto usa [Spec Kit](https://github.com/github/spec-kit) con Claude Code:
 `/speckit-specify` → `/speckit-clarify` → `/speckit-plan` → `/speckit-tasks` → `/speckit-implement`.
 
-Siguiente paso: generar `tasks.md` con `/speckit-tasks` e implementar.
+Siguiente paso: configurar los servicios externos y ejecutar los escenarios de
+[quickstart.md](specs/001-lms-cursos-ia/quickstart.md).

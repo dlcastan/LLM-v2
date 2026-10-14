@@ -22,7 +22,8 @@ Todas las tablas con RLS activa; escritura sensible solo vía servidor con rol d
 ## purchases
 - `id` (uuid, PK), `user_id` (FK), `course_id` (FK), `mp_preference_id`, `mp_payment_id` (único si no
   nulo), `amount`, `status` (`pending` | `approved` | `reverted` | `duplicate` | `rejected`),
-  `created_at`, `approved_at`, `reverted_at`.
+  `created_at`, `approved_at`, `reverted_at`, `notified_at` (marca el email de confirmación enviado;
+  garantiza un solo envío por compra).
 
 ## enrollments
 - `id` (uuid, PK), `user_id`, `course_id`, `purchase_id` (FK), `active` (bool).
