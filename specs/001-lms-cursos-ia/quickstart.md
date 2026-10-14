@@ -15,6 +15,8 @@
 6. **Video** (AC-13/14): reproducir clase; la URL vence a los 10 min; se ve la marca de agua.
 7. **Progreso y certificado** (AC-05/06): marcar todas las clases y descargar el PDF.
 8. **Admin** (AC-12): crear curso y clases; alumno sin rol recibe 403.
+9. **Clase archivada** (FR-025): eliminar una clase con progreso → deja de mostrarse, el porcentaje
+   se recalcula sin ella y el certificado ya emitido se conserva.
 
 ## Comandos
 - `npm run verify:bunny` (falla si la librería de Bunny no tiene Token Authentication).

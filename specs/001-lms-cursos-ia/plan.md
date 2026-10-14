@@ -60,6 +60,7 @@ specs/001-lms-cursos-ia/
 ├── research.md
 ├── data-model.md
 ├── quickstart.md
+├── bunny-setup.md
 ├── contracts/
 │   ├── http-api.md
 │   └── mercadopago-webhook.md
@@ -87,11 +88,17 @@ src/
 │   └── db/                     # acceso a datos tipado
 └── components/                 # UI, reproductor con marca de agua
 
-supabase/migrations/            # migraciones versionadas + políticas RLS
+supabase/
+├── migrations/                  # migraciones versionadas + políticas RLS
+└── seed.sql
+scripts/
+└── verify-bunny-config.ts      # verifica Token Authentication y MP4 fallback
+vercel.json                     # cron de conciliación cada 5 minutos
 tests/
 ├── unit/
 ├── integration/
-└── e2e/
+├── e2e/
+└── load/                       # prueba de carga de reproducción
 ```
 
 **Structure Decision**: proyecto único Next.js full-stack; la lógica crítica vive en `src/lib/`
